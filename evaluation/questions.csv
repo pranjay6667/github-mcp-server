@@ -1,0 +1,51 @@
+question_id,language,category,question,expected_tool
+1,English,Direct,Show me all my GitHub repositories,list_repos
+2,English,Direct,What repos do I own?,list_repos
+3,English,Direct,List my public repositories,list_repos
+4,English,Direct,Show my private projects on GitHub,list_repos
+5,English,Direct,What repositories have I updated recently?,list_repos
+6,English,Direct,List all open issues in pranjay6667/Pranjay,list_open_issues
+7,English,Direct,Show me the bug reports in pranjay6667/Pranjay,list_open_issues
+8,English,Direct,Are there any documentation issues open in repo Pranjay?,list_open_issues
+9,English,Direct,What tasks are currently open on pranjay6667/controlled-chat?,list_open_issues
+10,English,Direct,Show open issues labeled urgent in my Pranjay repository,list_open_issues
+11,English,Direct,How many total open issues do I have across all my repos?,count_open_issues_all
+12,English,Direct,Give me a count of all open bugs across my entire GitHub account,count_open_issues_all
+13,English,Direct,What is my total open issue backlog across all projects?,count_open_issues_all
+14,English,Direct,Give me a summary of the pranjay6667/Pranjay repository,get_repo_summary
+15,English,Direct,Show me stars forks and recent commits for repo Pranjay,get_repo_summary
+16,English,Direct,What is the status and recent activity of pranjay6667/MediMind?,get_repo_summary
+17,English,Direct,Find issues in Pranjay that have had no activity for 30 days,stale_issues
+18,English,Direct,Which issues are abandoned or inactive in pranjay6667/Pranjay?,stale_issues
+19,English,Direct,Create a new issue titled Fix navbar overflow in pranjay6667/Pranjay,create_issue
+20,English,Direct,Add the urgent label to issue number 3 in repo Pranjay,add_label
+21,Hinglish,Multilingual,Mere saare GitHub repositories dikhao,list_repos
+22,Hinglish,Multilingual,Pranjay repo me kaunse open issues hain?,list_open_issues
+23,Hinglish,Multilingual,Pranjay project ke saare bug wale issues dikhana,list_open_issues
+24,Hinglish,Multilingual,Mere saare projects me total kitne issues open hain?,count_open_issues_all
+25,Hinglish,Multilingual,Pranjay repo ka summary overview do commits aur stars ke sath,get_repo_summary
+26,Hinglish,Multilingual,Kaunse issues bohot dino se bina kisi update ke pade hain?,stale_issues
+27,Hinglish,Multilingual,Pranjay repo me ek naya issue banao title Update Readme,create_issue
+28,Hinglish,Multilingual,Issue number 2 me bug label laga do,add_label
+29,Hindi,Multilingual,मेरे सभी गिटहब रिपॉजिटरी की सूची दिखाइए,list_repos
+30,Hindi,Multilingual,Pranjay रिपॉजिटरी में कौन सी समस्याएं खुली हैं?,list_open_issues
+31,Hindi,Multilingual,मेरे सभी प्रोजेक्ट्स में कुल कितने ओपन इश्यूज हैं?,count_open_issues_all
+32,Hindi,Multilingual,Pranjay रिपॉजिटरी का सारांश और हालिया कमिट्स दिखाइए,get_repo_summary
+33,Hindi,Multilingual,कौन से इश्यूज काफी समय से निष्क्रिय हैं?,stale_issues
+34,Hindi,Multilingual,Pranjay रिपोजिटरी में नया इशू जोड़ें,create_issue
+35,Hindi,Multilingual,इशू संख्या 4 पर urgent लेबल लगाइए,add_label
+36,English,Ambiguous,How many issues are open in pranjay6667/Pranjay?,list_open_issues
+37,English,Ambiguous,Count the issues in the Pranjay project,list_open_issues
+38,English,Ambiguous,Show me my backlog,count_open_issues_all
+39,English,Ambiguous,What needs my attention across my repos?,count_open_issues_all
+40,English,Ambiguous,Tell me everything about the repo MediMind,get_repo_summary
+41,English,Ambiguous,Which issues are old and forgotten in Pranjay?,stale_issues
+42,English,Ambiguous,Report a bug on Pranjay that the login button is broken,create_issue
+43,English,Ambiguous,Tag issue 1 as a bug,add_label
+44,English,No Tool,What is the capital of France?,none
+45,English,No Tool,Explain the time complexity of quicksort,none
+46,English,No Tool,Delete repository pranjay6667/Pranjay,none
+47,English,No Tool,Close issue number 2 in repo Pranjay,none
+48,English,No Tool,Push a commit to main branch with message update code,none
+49,Hinglish,No Tool,Pranjay repo ko delete kar do,none
+50,Hindi,No Tool,पायथन में रिकर्सन क्या होता है समझाइए,none
