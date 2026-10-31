@@ -1,139 +1,181 @@
 # GitHub MCP Server
 
-A Model Context Protocol (MCP) server written in Python connecting AI assistants (such as Claude Desktop) to authenticated GitHub repositories and issues.
+A Model Context Protocol (MCP) server connecting AI assistants to authenticated GitHub data — repositories, issues, pull requests, and stale-backlog detection — via the GitHub REST API.
 
-Developed as an MCA Minor Project at **Vivekananda Institute of Professional Studies – Technical Campus (VIPS-TC), GGSIPU, Delhi**.
-
----
-
-## 📌 Architecture & Design Principles
-
-```
-┌────────────────────────────────────────────────────────┐
-│                      LOCAL MACHINE                     │
-│                                                        │
-│  ┌─────────────────┐      stdio       ┌──────────────┐ │
-│  │   MCP Client    │ ◄══════════════► │  MCP Server  │ │
-│  │ (Claude Desktop)│    JSON-RPC      │ (server.py)  │ │
-│  └─────────────────┘                  └──────┬───────┘ │
-│                                              │         │
-│                                          HTTP requests │
-│                                              │         │
-└──────────────────────────────────────────────┼─────────┘
-                                               ▼
-                                      ┌──────────────────┐
-                                      │  GitHub REST API │
-                                      │ (api.github.com) │
-                                      └──────────────────┘
-```
-
-- **Read-Only First**: Five read-only tools allow safe repository data inspection.
-- **Safety by Default**: Write operations (`create_issue`, `add_label`) run in **dry-run** mode (`confirm=False`) by default. They generate a preview and require explicit confirmation (`confirm=True`) before executing.
-- **Least Privilege**: Operates via fine-grained Personal Access Tokens scoped strictly to Issues and Pull Requests.
-- **Protocol Integrity**: All logging is routed to `sys.stderr` so that `sys.stdout` remains dedicated exclusively to MCP stdio JSON-RPC messages.
+**MCA Minor Project** · VIPS-TC, GGSIPU, Delhi
 
 ---
 
-## 🛠️ Tools Overview
+## Architecture
 
-| Tool | Category | Safety / Mode | Description |
+```
+┌──────────────────────────────────────────────────────┐
+│                    LOCAL MACHINE                     │
+│                                                      │
+│  ┌──────────────┐    stdio (JSON-RPC)   ┌──────────┐ │
+│  │  MCP Client  │ ◄══════════════════► │  server  │ │
+│  │  (Inspector) │                      │   .py    │ │
+│  └──────────────┘                      └────┬─────┘ │
+│                                             │       │
+│                                        HTTPS (REST) │
+└─────────────────────────────────────────────┼───────┘
+                                              ▼
+                                     ┌─────────────────┐
+                                     │ api.github.com  │
+                                     └─────────────────┘
+```
+
+### Design Principles
+
+| Principle | Implementation |
+|---|---|
+| Read-only first | 5 of 7 tools are strictly read-only |
+| Safe writes | `create_issue` and `add_label` default to dry-run; require `confirm=True` |
+| Least privilege | Fine-grained PAT scoped to Issues + PRs + Metadata |
+| Protocol integrity | All logging → `stderr`; `stdout` reserved for MCP JSON-RPC |
+
+---
+
+## Tools
+
+| # | Tool | Mode | Description |
 |---|---|---|---|
-| `list_repos` | Read-only | Safe | Lists repositories owned by the authenticated user with stars, forks, visibility, and last updated time. |
-| `list_open_issues` | Read-only | Safe | Lists open issues for a specific repo (filters out pull requests). Supports label filtering. |
-| `count_open_issues_all` | Read-only | Safe | Uses GitHub Search API to count open issues across all user repositories in a single API call. |
-| `get_repo_summary` | Read-only | Safe | Fetches repository details, recent commits, and open pull requests in a structured dashboard view. |
-| `stale_issues` | Read-only | Safe | Finds open issues with no comments or updates for $N$ days (sorted ascending to optimize API usage). |
-| `create_issue` | Write | **Dry-run by default** | Creates an issue only when `confirm=True`. Otherwise returns a preview. |
-| `add_label` | Write | **Dry-run by default** | Adds labels to an issue only when `confirm=True`. Otherwise returns a preview. |
+| 1 | `list_repos` | Read | Authenticated user's repositories with stars, forks, visibility |
+| 2 | `list_open_issues` | Read | Open issues for a repo; optional label filter; excludes PRs |
+| 3 | `count_open_issues_all` | Read | Cross-repo open-issue count via GitHub Search API |
+| 4 | `get_repo_summary` | Read | Dashboard: repo metrics + recent commits + open PRs |
+| 5 | `stale_issues` | Read | Issues with no activity for N days |
+| 6 | `create_issue` | Write | Creates issue after dry-run preview and explicit confirmation |
+| 7 | `add_label` | Write | Adds labels to issue after dry-run preview and confirmation |
 
 ---
 
-## 🚀 Setup & Installation
+## Setup
 
-### 1. Prerequisites
-- Python 3.10+ (tested on Python 3.14)
-- A GitHub Account
-- Claude Desktop or MCP Inspector
+### Prerequisites
 
-### 2. Clone & Create Virtual Environment
-```powershell
-git clone <your-repo-url>
+- Python 3.10+
+- A GitHub account with a fine-grained Personal Access Token
+
+### Install
+
+```bash
+git clone https://github.com/pranjay6667/github-mcp-server.git
 cd github-mcp-server
 
 python -m venv .venv
-.venv\Scripts\activate   # Windows
-# source .venv/bin/activate  # macOS / Linux
-```
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS / Linux
 
-### 3. Install Dependencies
-```powershell
 pip install -r requirements.txt
 ```
 
-### 4. Configure GitHub Token
-1. Generate a fine-grained token at [GitHub Token Settings](https://github.com/settings/personal-access-tokens/new):
-   - **Repository access**: All repositories (or select specific repositories)
-   - **Permissions**:
-     - *Issues*: Read and Write
-     - *Pull requests*: Read-only
-     - *Metadata*: Read-only (default)
-2. Copy `.env.example` to `.env`:
-   ```powershell
-   copy .env.example .env
+### Configure Token
+
+1. Create a fine-grained token at [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new)
+   - **Permissions**: Issues (Read & Write), Pull Requests (Read), Metadata (Read)
+2. Copy `.env.example` → `.env` and paste your token:
    ```
-3. Open `.env` and set your token:
-   ```env
-   GITHUB_TOKEN=github_pat_your_token_here
+   GITHUB_TOKEN=github_pat_...
    ```
 
 ---
 
-## 🧪 Testing
+## Usage
 
-### Test with the MCP Inspector
-Run the official MCP Inspector to interact with your tools in a browser UI:
-```powershell
+### MCP Inspector (recommended for testing)
+
+```bash
 mcp dev server.py
 ```
 
-### Run Automated Unit / Safety Verification
-```powershell
-python test_all_tools.py
-python test_safety_quality.py
-```
+Opens a browser UI at `localhost:6274` with all 7 tools ready to invoke.
 
----
+### Claude Desktop
 
-## 🖥️ Connecting to Claude Desktop
-
-Add the server to your Claude Desktop configuration file:
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-Add the following under `mcpServers`:
+Add to `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "github": {
-      "command": "C:\\Users\\pranj\\.gemini\\antigravity\\scratch\\github-mcp-server\\.venv\\Scripts\\python.exe",
-      "args": [
-        "C:\\Users\\pranj\\.gemini\\antigravity\\scratch\\github-mcp-server\\server.py"
-      ]
+      "command": "C:\\path\\to\\.venv\\Scripts\\python.exe",
+      "args": ["C:\\path\\to\\server.py"]
     }
   }
 }
 ```
 
-Restart Claude Desktop. The hammer icon (tools) will show all 7 tools ready to use.
+Restart Claude Desktop. The tools icon will show 7 tools.
 
 ---
 
-## 🔒 Security Checklist
+## Testing
 
-- [x] **No Hardcoded Credentials**: Tokens loaded exclusively via `config.py` from `.env`.
-- [x] **Git Hygiene**: `.env` and `.venv/` strictly included in `.gitignore`.
-- [x] **Least Privilege**: Fine-grained token scoped only to metadata, issues, and PRs.
-- [x] **No Destructive Capabilities**: Server intentionally provides no issue deletion or repo deletion tools.
-- [x] **State-Change Guardrail**: All write tools enforce preview confirmation prior to mutating live data.
-- [x] **Rate Limit Guard**: Monitors `X-RateLimit-Remaining` to fail gracefully instead of crashing.
+```bash
+python tests/test_tools.py       # All 7 tools against live API
+python tests/test_safety.py      # Dry-run vs confirmed execution
+python tests/test_protocol.py    # MCP JSON-RPC handshake
+```
+
+---
+
+## Evaluation
+
+A 50-question benchmark (`evaluation/questions.csv`) across English, Hindi, and Hinglish tests tool-routing accuracy:
+
+| Round | Accuracy | Notes |
+|---|---|---|
+| Round 1 (naive prompts) | 90.0% (45/50) | Boundary ambiguity in cross-repo queries |
+| Round 2 (refined prompts) | 98.0% (49/50) | Scope guards + negative constraints added |
+
+Run the benchmark:
+
+```bash
+python evaluation/evaluate.py
+```
+
+---
+
+## Project Structure
+
+```
+github-mcp-server/
+├── server.py              # MCP server — 7 tool definitions
+├── github_client.py       # GitHub REST API client
+├── config.py              # Token loader from .env
+├── requirements.txt
+├── .env.example
+├── tests/
+│   ├── test_tools.py      # Tool integration tests
+│   ├── test_safety.py     # Dry-run confirmation tests
+│   └── test_protocol.py   # MCP handshake test
+├── scripts/
+│   └── seed_test_data.py  # Creates sample issues/labels
+├── evaluation/
+│   ├── questions.csv      # 50-question benchmark
+│   ├── evaluate.py        # Benchmark runner
+│   └── results.csv        # Round 1 & 2 results
+└── docs/
+    ├── PROJECT_REPORT.md
+    ├── PPT_OUTLINE.md
+    ├── DEMO_SCRIPT.md
+    ├── VIVA_QUESTIONS.md
+    └── INTERVIEW_PITCH.md
+```
+
+---
+
+## Security
+
+- **No hardcoded credentials** — token loaded from `.env` via `config.py`
+- **`.env` in `.gitignore`** — never committed
+- **Least privilege** — PAT scoped to metadata, issues, and PRs only
+- **No destructive tools** — no deletion or repo-level mutation
+- **Dry-run by default** — write tools preview before executing
+
+---
+
+## License
+
+MIT

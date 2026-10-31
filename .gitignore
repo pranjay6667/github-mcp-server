@@ -1,17 +1,9 @@
-# Environment variables (NEVER commit this — contains your GitHub token)
 .env
-
-# Python virtual environment
 .venv/
-
-# Python cache files
 __pycache__/
 *.pyc
-
-# IDE settings
+*.pyo
 .vscode/
 .idea/
-
-# OS files
 Thumbs.db
 .DS_Store

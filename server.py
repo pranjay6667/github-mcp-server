@@ -1,8 +1,7 @@
-"""
-server.py — GitHub MCP Server
+"""GitHub Model Context Protocol (MCP) Server.
 
-Main entry point registering all 7 tools for the AI assistant.
-Logging routes to stderr to ensure stdio JSON-RPC protocol messages are untouched.
+Exposes 7 tools connecting AI assistants to authenticated GitHub data.
+Stdio JSON-RPC protocol on stdout; diagnostic logging on stderr.
 """
 
 import logging
@@ -10,9 +9,10 @@ import sys
 from mcp.server.mcpserver import MCPServer
 from github_client import GitHubClient
 
+__version__ = "1.0.0"
+
 logger = logging.getLogger("github_mcp")
 
-# Initialize MCP Server
 mcp = MCPServer(
     name="github-mcp-server",
     instructions=(
@@ -23,13 +23,12 @@ mcp = MCPServer(
     ),
 )
 
-# API client
 client = GitHubClient()
 
 
-# ================================================================== #
-#                         READ-ONLY TOOLS                            #
-# ================================================================== #
+# ----------------------------------------------------------------------
+# Read-Only Tools
+# ----------------------------------------------------------------------
 
 @mcp.tool()
 def list_repos(
@@ -37,13 +36,12 @@ def list_repos(
     sort_by: str = "updated",
     limit: int = 30,
 ) -> str:
-    """
-    List repositories belonging to the authenticated GitHub user.
+    """List repositories belonging to the authenticated GitHub user.
 
     Args:
-        visibility: "all", "public", or "private". Defaults to "all".
-        sort_by: "updated", "created", or "pushed". Defaults to "updated".
-        limit: Max repos to return (1-100). Defaults to 30.
+        visibility: 'all', 'public', or 'private'. Defaults to 'all'.
+        sort_by: 'updated', 'created', or 'pushed'. Defaults to 'updated'.
+        limit: Maximum repositories to return (1-100). Defaults to 30.
     """
     valid_visibility = ("all", "public", "private")
     if visibility not in valid_visibility:
@@ -94,13 +92,12 @@ def list_open_issues(
     label: str = "",
     limit: int = 30,
 ) -> str:
-    """
-    List open issues for a specific repository.
+    """List open issues for a specific repository.
 
     Args:
-        owner: The repository owner (GitHub username), e.g. "pranjay6667".
-        repo: The repository name, e.g. "Pranjay".
-        label: Optional label filter (e.g. "bug").
+        owner: The repository owner (GitHub username), e.g. 'pranjay6667'.
+        repo: The repository name, e.g. 'Pranjay'.
+        label: Optional label filter (e.g. 'bug').
         limit: Max issues to return (1-100). Defaults to 30.
     """
     if not owner or not repo:
@@ -121,7 +118,7 @@ def list_open_issues(
             msg += f" with label '{label}'"
         return msg + "."
 
-    lines = [f"Open issues in {owner}/{repo}" + (f" (label: {label})" if label else "") + f" — {len(issues)} found:\n"]
+    lines = [f"Open issues in {owner}/{repo}" + (f" (label: {label})" if label else "") + f" -- {len(issues)} found:\n"]
     for issue in issues:
         number = issue.get("number", "?")
         title = issue.get("title", "Untitled")
@@ -144,11 +141,10 @@ def list_open_issues(
 
 @mcp.tool()
 def count_open_issues_all(label: str = "") -> str:
-    """
-    Count total open issues across ALL repositories owned by the user.
+    """Count total open issues across ALL repositories owned by the user.
 
     Args:
-        label: Optional label filter, e.g. "bug".
+        label: Optional label filter, e.g. 'bug'.
     """
     label_filter = label if label else None
 
@@ -167,7 +163,7 @@ def count_open_issues_all(label: str = "") -> str:
             msg += f" with label '{label}'"
         return msg + "."
 
-    repo_counts = {}
+    repo_counts: dict[str, int] = {}
     for item in items:
         repo_full = item.get("repository_url", "").replace("https://api.github.com/repos/", "")
         repo_counts[repo_full] = repo_counts.get(repo_full, 0) + 1
@@ -182,8 +178,7 @@ def count_open_issues_all(label: str = "") -> str:
 
 @mcp.tool()
 def get_repo_summary(owner: str, repo: str) -> str:
-    """
-    Get a dashboard-style summary of a repository (metrics, recent commits, open PRs).
+    """Get a dashboard-style summary of a repository (metrics, recent commits, open PRs).
 
     Args:
         owner: The repository owner (GitHub username).
@@ -248,8 +243,7 @@ def stale_issues(
     repo: str,
     days: int = 30,
 ) -> str:
-    """
-    Find open issues in a repository with no activity for N days.
+    """Find open issues in a repository with no activity for N days.
 
     Args:
         owner: Repository owner.
@@ -269,7 +263,7 @@ def stale_issues(
     if not stale:
         return f"No stale issues found in {owner}/{repo}. All open issues have had activity in the last {days} days."
 
-    lines = [f"Stale issues in {owner}/{repo} (no activity for {days}+ days) — {len(stale)} found:\n"]
+    lines = [f"Stale issues in {owner}/{repo} (no activity for {days}+ days) -- {len(stale)} found:\n"]
     for issue in stale:
         number = issue.get("number", "?")
         title = issue.get("title", "Untitled")
@@ -289,9 +283,9 @@ def stale_issues(
     return "\n".join(lines)
 
 
-# ================================================================== #
-#              WRITE TOOLS (Require confirm=True)                    #
-# ================================================================== #
+# ----------------------------------------------------------------------
+# Write Tools (Require confirm=True)
+# ----------------------------------------------------------------------
 
 @mcp.tool()
 def create_issue(
@@ -302,18 +296,17 @@ def create_issue(
     labels: str = "",
     confirm: bool = False,
 ) -> str:
-    """
-    Create a new issue in a GitHub repository.
+    """Create a new issue in a GitHub repository.
 
-    SAFETY: Defaults to DRY-RUN mode (confirm=False). Shows preview.
-    Set confirm=True only after explicit user confirmation.
+    SAFETY: Defaults to DRY-RUN mode (confirm=False). Generates a preview.
+    Requires confirm=True to commit changes.
 
     Args:
         owner: Repository owner.
         repo: Repository name.
         title: Issue title (required).
         body: Optional description.
-        labels: Comma-separated labels, e.g. "bug,urgent".
+        labels: Comma-separated labels, e.g. 'bug,urgent'.
         confirm: Must be True to execute. False produces a preview.
     """
     if not owner or not repo:
@@ -323,18 +316,16 @@ def create_issue(
 
     label_list = [l.strip() for l in labels.split(",") if l.strip()] if labels else []
 
-    # Dry-run preview
     if not confirm:
         return (
-            "DRY RUN — Issue preview (not created yet):\n\n"
+            "DRY RUN -- Issue preview (not created yet):\n\n"
             f"  Repository: {owner}/{repo}\n"
             f"  Title: {title}\n"
             f"  Body: {body if body else '(empty)'}\n"
             f"  Labels: {label_list if label_list else '(none)'}\n\n"
-            "To actually create this issue, call create_issue again with confirm=True."
+            "To execute creation, call create_issue again with confirm=True."
         )
 
-    # Execution
     try:
         result = client.create_issue(
             owner=owner, repo=repo, title=title, body=body, labels=label_list if label_list else None
@@ -356,17 +347,16 @@ def add_label(
     labels: str,
     confirm: bool = False,
 ) -> str:
-    """
-    Add one or more labels to an existing issue.
+    """Add one or more labels to an existing issue.
 
-    SAFETY: Defaults to DRY-RUN mode (confirm=False). Shows preview.
-    Set confirm=True only after explicit user confirmation.
+    SAFETY: Defaults to DRY-RUN mode (confirm=False). Generates a preview.
+    Requires confirm=True to commit changes.
 
     Args:
         owner: Repository owner.
         repo: Repository name.
         issue_number: Issue number (positive integer).
-        labels: Comma-separated labels to add, e.g. "bug,urgent".
+        labels: Comma-separated labels to add, e.g. 'bug,urgent'.
         confirm: Must be True to execute. False produces a preview.
     """
     if not owner or not repo:
@@ -378,17 +368,15 @@ def add_label(
     if not label_list:
         return "Error: 'labels' is required. Provide comma-separated label names."
 
-    # Dry-run preview
     if not confirm:
         return (
-            "DRY RUN — Label preview (not added yet):\n\n"
+            "DRY RUN -- Label preview (not added yet):\n\n"
             f"  Repository: {owner}/{repo}\n"
             f"  Issue: #{issue_number}\n"
             f"  Labels to add: {label_list}\n\n"
-            "To actually add these labels, call add_label again with confirm=True."
+            "To execute, call add_label again with confirm=True."
         )
 
-    # Execution
     try:
         result = client.add_labels_to_issue(
             owner=owner, repo=repo, issue_number=issue_number, labels=label_list

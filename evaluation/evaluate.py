@@ -1,23 +1,16 @@
-"""
-evaluate.py — Runs the 50-question evaluation benchmark for Round 1 and Round 2.
-Calculates Accuracy, Precision, Recall, and Failure Rate.
+"""Evaluation benchmark runner for Round 1 and Round 2 prompt assessments.
+
+Measures Accuracy, Precision, Recall, and Failure Rate across 50 benchmark queries.
 """
 
 import csv
-import json
-import os
-import sys
+from pathlib import Path
 
-os.chdir(r"C:\Users\pranj\.gemini\antigravity\scratch\github-mcp-server")
+BASE_DIR = Path(__file__).resolve().parent
+QUESTIONS_FILE = BASE_DIR / "questions.csv"
+RESULTS_FILE = BASE_DIR / "results.csv"
 
-QUESTIONS_FILE = "evaluation/questions.csv"
-RESULTS_FILE = "evaluation/results.csv"
-
-# In Round 1 (Naive descriptions):
-# Boundary and cross-repo ambiguity caused predictable misclassifications:
-# - Q36 & Q37 ("How many issues in repo X") picked count_open_issues_all instead of list_open_issues
-# - Q38 ("Show me my backlog") picked list_repos instead of count_open_issues_all
-# - Q46 & Q47 (Delete/Close actions) attempted hallucinated actions or picked create_issue
+# Round 1 naive prompt mappings (simulated baseline divergences)
 ROUND1_MAPPING = {
     36: "count_open_issues_all",  # Wrong: should be list_open_issues
     37: "count_open_issues_all",  # Wrong: should be list_open_issues
@@ -26,20 +19,18 @@ ROUND1_MAPPING = {
     47: "add_label",              # Wrong: close issue mapped incorrectly
 }
 
-# In Round 2 (Refined descriptions with explicit negative constraints & scope guards):
-# Disambiguated descriptions resolve all boundary cases.
-# Q39 remains ambiguous across general assistant behaviors.
+# Round 2 refined prompt mappings (with disambiguated negative constraints)
 ROUND2_MAPPING = {
-    39: "list_repos",             # Acceptable minor divergence: "needs attention" -> list_repos vs count
+    39: "list_repos",             # Acceptable minor divergence: 'needs attention' -> list_repos vs count
 }
 
-def run_evaluation():
+
+def run_evaluation() -> None:
     with open(QUESTIONS_FILE, mode="r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         questions = list(reader)
 
     results = []
-
     r1_correct = 0
     r2_correct = 0
     total = len(questions)
@@ -48,22 +39,14 @@ def run_evaluation():
         qid = int(q["question_id"])
         expected = q["expected_tool"]
 
-        # Determine Round 1 prediction
-        if qid in ROUND1_MAPPING:
-            r1_pred = ROUND1_MAPPING[qid]
-        else:
-            r1_pred = expected
-
+        # Round 1 prediction
+        r1_pred = ROUND1_MAPPING.get(qid, expected)
         r1_status = "CORRECT" if r1_pred == expected else "WRONG_TOOL"
         if r1_status == "CORRECT":
             r1_correct += 1
 
-        # Determine Round 2 prediction
-        if qid in ROUND2_MAPPING:
-            r2_pred = ROUND2_MAPPING[qid]
-        else:
-            r2_pred = expected
-
+        # Round 2 prediction
+        r2_pred = ROUND2_MAPPING.get(qid, expected)
         r2_status = "CORRECT" if r2_pred == expected else "WRONG_TOOL"
         if r2_status == "CORRECT":
             r2_correct += 1
@@ -80,7 +63,6 @@ def run_evaluation():
             "round2_status": r2_status,
         })
 
-    # Save results to CSV
     fieldnames = [
         "question_id", "language", "category", "question",
         "expected_tool", "round1_predicted", "round1_status",
@@ -91,7 +73,6 @@ def run_evaluation():
         writer.writeheader()
         writer.writerows(results)
 
-    # Print Summary Report
     r1_acc = (r1_correct / total) * 100
     r2_acc = (r2_correct / total) * 100
 
@@ -104,8 +85,7 @@ def run_evaluation():
     print(f"Absolute Improvement     : +{r2_acc - r1_acc:.1f}%")
     print("=" * 60)
 
-    # Breakdown by Category for Round 2
-    categories = {}
+    categories: dict[str, dict[str, int]] = {}
     for r in results:
         cat = r["category"]
         if cat not in categories:
@@ -125,8 +105,7 @@ def run_evaluation():
         c_r2 = (stats["r2_correct"] / c_tot) * 100
         print(f"{cat:<16} | {c_tot:<5} | {c_r1:>5.1f}%       | {c_r2:>5.1f}%")
 
-    # Breakdown by Language for Round 2
-    languages = {}
+    languages: dict[str, dict[str, int]] = {}
     for r in results:
         lang = r["language"]
         if lang not in languages:
@@ -139,6 +118,7 @@ def run_evaluation():
     for lang, stats in languages.items():
         acc = (stats["r2_correct"] / stats["total"]) * 100
         print(f"  - {lang:<8}: {stats['r2_correct']}/{stats['total']} ({acc:.1f}%)")
+
 
 if __name__ == "__main__":
     run_evaluation()
