@@ -158,6 +158,19 @@ SYSTEM_PROMPT = (
     "You understand queries in English, Hindi, and Hinglish. Answer clearly and concisely."
 )
 
+# Initialize OpenAI client for OpenRouter
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
+
+MODELS = {
+    "1": ("openrouter/auto", "Auto / Free Router (Universal & Robust - Recommended)"),
+    "2": ("openai/gpt-4o-mini", "OpenAI GPT-4o Mini (Fast & Highly Accurate Tool Calling)"),
+    "3": ("deepseek/deepseek-chat", "DeepSeek-V3 (Fast & Advanced Open Weights)"),
+    "4": ("google/gemini-2.5-flash", "Google Gemini 2.5 Flash (Ultra-Fast Response)"),
+}
+
 def execute_tool_call(tool_name: str, args: dict) -> str:
     func = TOOL_MAPPING.get(tool_name)
     if not func:
@@ -173,28 +186,15 @@ def main():
     print("  MCA Minor Project Demo | Candidate: Pranjay")
     print("=" * 65)
     
-    # Available high quality models on OpenRouter
-    models = {
-        "1": ("meta-llama/llama-3.3-70b-instruct:free", "Llama 3.3 70B (Free tier)"),
-        "2": ("deepseek/deepseek-chat", "DeepSeek-V3 (Fast & Powerful)"),
-        "3": ("anthropic/claude-3.5-sonnet", "Claude 3.5 Sonnet (State-of-the-Art)"),
-        "4": ("google/gemini-2.0-flash-exp:free", "Gemini 2.0 Flash (Free tier)"),
-    }
-    
     print("\nSelect an AI Model from OpenRouter:")
-    for k, (m_id, desc) in models.items():
+    for k, (m_id, desc) in MODELS.items():
         print(f"  [{k}] {desc}")
     
     choice = input("\nEnter choice [1-4, default=1]: ").strip() or "1"
-    selected_model = models.get(choice, models["1"])[0]
+    selected_model = MODELS.get(choice, MODELS["1"])[0]
     print(f"\n[Active Model]: {selected_model}")
     print("Type your questions in English, Hindi, or Hinglish (e.g. 'Show my repos', 'Mere open issues dikhao').")
     print("Type 'exit' or 'quit' to stop.\n" + "-" * 65)
-    
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-    )
     
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT}
