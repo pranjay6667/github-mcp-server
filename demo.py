@@ -24,6 +24,7 @@ def menu():
     print("  [3] MCP Protocol & Schema Verification (In-Process)")
     print("  [4] 50-Question Multilingual Benchmark (98% Accuracy)")
     print("  [5] Launch MCP Inspector Web UI (Interactive Browser Dashboard)")
+    print("  [6] OpenRouter AI Chat (Live AI Model Tool Calling)")
     print("  [0] Exit")
     print("-" * 65)
 
@@ -41,7 +42,7 @@ def main():
     banner()
     while True:
         menu()
-        choice = input("Enter option [1-5, or 0]: ").strip()
+        choice = input("Enter option [1-6, or 0]: ").strip()
         if choice == "1":
             run_script("tests/test_tools.py")
         elif choice == "2":
@@ -52,11 +53,13 @@ def main():
             run_script("evaluation/evaluate.py")
         elif choice == "5":
             launch_inspector()
+        elif choice == "6":
+            run_script("chat_openrouter.py")
         elif choice in ("0", "exit", "q"):
             print("\nExiting demo. Best of luck for your viva!\n")
             break
         else:
-            print("Invalid selection. Please choose 1, 2, 3, 4, 5, or 0.")
+            print("Invalid selection. Please choose 1, 2, 3, 4, 5, 6, or 0.")
 
 if __name__ == "__main__":
     main()
